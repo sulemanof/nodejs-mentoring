@@ -1,0 +1,25 @@
+{
+  "name": "nodejs_mentoring",
+  "email": "daniil_suleiman@epam.com",
+  "version": "1.0.0",
+  "description": "homework, nodejs mentoring program",
+  "main": "app.js",
+  "scripts": {
+    "test": "",
+    "start": "nodemon --exec babel-node ./app.js"
+  },
+  "repository": "github:sulemanof/nodejs-mentoring",
+  "author": "Daniil Suleiman",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.1.5",
+    "@babel/core": "^7.1.6",
+    "@babel/node": "^7.0.0",
+    "@babel/preset-env": "^7.1.6",
+    "@babel/register": "^7.0.0",
+    "eslint": "^5.9.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.14.0",
+    "nodemon": "^1.18.7"
+  }
+}
