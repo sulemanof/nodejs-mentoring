@@ -1,6 +1,11 @@
 {
   "extends": "airbnb-base",
   "rules": {
-    "class-methods-use-this": [0]
+    "class-methods-use-this": [0],
+    "no-console": "off",
+    "func-names": 0
+  },
+  "env": {
+    "node": true
   }
 }
