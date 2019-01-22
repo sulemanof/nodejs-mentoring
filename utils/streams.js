@@ -1,16 +1,25 @@
 const fs = require('fs');
-const https = require('https');
+const path = require('path');
 const program = require('commander');
 const colors = require('colors');
 const through2 = require('through2');
 const csv = require('csvtojson');
+const CombinedStream = require('combined-stream');
+const flattenDeep = require('lodash/flattenDeep');
 
-const checkFilePath = path => new Promise((resolve, reject) => {
-  fs.access(path, fs.constants.F_OK, (err) => {
+
+const checkFilePath = (filePath, isDir = false) => new Promise((resolve, reject) => {
+  const message = isDir ? 'folder' : 'file';
+
+  if (!filePath) {
+    reject(new Error(`Please provide a ${message} path for this action`));
+  }
+
+  fs.access(filePath, fs.constants.F_OK, (err) => {
     if (err) {
-      reject(new Error(`Specified file doesn't exist - ${path}`));
+      reject(new Error(`Specified ${message} [ '${filePath}' ] doesn't exist`));
     } else {
-      resolve();
+      resolve(filePath);
     }
   });
 });
@@ -26,62 +35,62 @@ const transform = () => process.stdin
   })).pipe(process.stdout)
   .on('error', showError);
 
-const outputFile = () => {
-  const path = program.file;
+const outputFile = file => fs.createReadStream(file).pipe(process.stdout);
 
-  checkFilePath(path)
-    .then(() => fs.createReadStream(path).pipe(process.stdout))
-    .catch(showError);
+const convertFromFile = file => fs.createReadStream(file)
+  .pipe(csv())
+  .pipe(process.stdout);
+
+const convertToFile = (file) => {
+  let isFirstChunk = true;
+
+  fs.createReadStream(file)
+    .pipe(csv())
+    .pipe(through2(function (chunk, enc, callback) {
+      if (isFirstChunk) {
+        this.push(`[\n${chunk}`);
+        isFirstChunk = false;
+      } else {
+        this.push(`,${chunk}`);
+      }
+      callback();
+    }, function (callback) {
+      this.push(']');
+      callback();
+    }))
+    .pipe(fs.createWriteStream(file.replace(/\.[^.]+$/i, '.json')));
 };
 
-const convertFromFile = () => {
-  const path = program.file;
+const getCssFiles = dir => flattenDeep(fs.readdirSync(dir)
+  .map((file) => {
+    const filePath = path.join(dir, file);
+    if (fs.statSync(filePath).isDirectory()) {
+      return getCssFiles(filePath);
+    }
+    if (path.extname(filePath) === '.css') {
+      return filePath;
+    }
+    return '';
+  }).filter(filePath => !!filePath));
 
-  checkFilePath(path)
-    .then(() => fs.createReadStream(path)
-      .pipe(csv())
-      .pipe(process.stdout)
-      .on('error', showError))
-    .catch(showError);
-};
-
-const convertToFile = () => {
-  const path = program.file;
-
-  checkFilePath(path)
-    .then(() => {
-      let isFirstChunk = true;
-
-      fs.createReadStream(path)
-        .pipe(csv())
-        .pipe(through2(function (chunk, enc, callback) {
-          if (isFirstChunk) {
-            this.push(`[\n${chunk}`);
-            isFirstChunk = false;
-          } else {
-            this.push(`,${chunk}`);
-          }
-          callback();
-        }, function (callback) {
-          this.push(']');
-          callback();
-        }))
-        .pipe(fs.createWriteStream(path.replace(/\.[^.]+$/i, '.json')))
-        .on('error', showError);
-    }).catch(showError);
-};
-
-const cssBundler = () => {
-  const url = 'https://epa.ms/nodejs18-hw3-css';
-
-
-  https.get(url, (res) => {
-    res.pipe(fs.createWriteStream('bundle.css'));
+const cssBundler = (folder) => {
+  const combinedStream = CombinedStream.create();
+  const files = getCssFiles(folder);
+  files.forEach((file) => {
+    if (file.indexOf('nodejs-homework3.css') === -1 && file.indexOf('bundle.css') === -1) {
+      combinedStream.append(fs.createReadStream(file));
+    }
   });
+  combinedStream.append(fs.createReadStream('./assets/nodejs-homework3.css'));
+  combinedStream.pipe(fs.createWriteStream(path.join(folder, 'bundle.css')));
 };
 
-const actionHandler = (action) => {
-  switch (action) {
+const actionHandler = () => {
+  const filePath = program.file;
+  const dirPath = program.path;
+  let promise = Promise.resolve();
+
+  switch (program.action) {
     case 'reverse':
       reverse();
       break;
@@ -89,22 +98,24 @@ const actionHandler = (action) => {
       transform();
       break;
     case 'outputFile':
-      outputFile();
+      promise = checkFilePath(filePath).then(outputFile);
       break;
     case 'convertFromFile':
-      convertFromFile();
+      promise = checkFilePath(filePath).then(convertFromFile);
       break;
     case 'convertToFile':
-      convertToFile();
+      promise = checkFilePath(filePath).then(convertToFile);
       break;
     case 'cssBundler':
-      cssBundler();
+      promise = checkFilePath(dirPath, true).then(cssBundler);
       break;
     default: {
-      console.error('Invalid action type');
+      console.error('Invalid action type provided');
       program.outputHelp(colors.red);
     }
   }
+
+  promise.catch(showError).then(() => program.outputHelp());
 };
 
 program
@@ -116,5 +127,5 @@ program
 if (!process.argv.slice(2).length) {
   program.outputHelp(colors.red);
 } else {
-  actionHandler(program.action);
+  actionHandler();
 }
