@@ -16,5 +16,9 @@
         "name": "Vova",
         "login": "vova@gmail.com",
         "password": "222333000"
+    },
+    {
+        "id": 4,
+        "name": "Daniel  Suleiman"
     }
 ]
