@@ -1,14 +1,24 @@
 [
     {
         "id": 1,
-        "name": "Oleg"
+        "name": "Oleg",
+        "login": "oleg@gmail.com",
+        "password": "22330011"
     },
     {
         "id": 2,
-        "name": "Petr"
+        "name": "Petr",
+        "login": "petr@gmail.com",
+        "password": "123321"
     },
     {
         "id": 3,
-        "name": "Vova"
+        "name": "Vova",
+        "login": "vova@gmail.com",
+        "password": "222333000"
+    },
+    {
+        "id": 4,
+        "name": "Daniel  Suleiman"
     }
 ]
