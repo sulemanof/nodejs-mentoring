@@ -13,18 +13,22 @@ const productsController = {
   },
 
   addProduct(req, res) {
-    const { cost, name, reviews } = req.body;
+    const { price, name, reviews } = req.body;
     db.Product.create({
       name,
-      cost,
+      price,
       Reviews: reviews,
+    }).then(product => Promise.all(
+      reviews.map(review => db.Reviews.create({
+        ProductId: product.id,
+        review,
+      })),
+    )).then(() => {
+      db.Product.findAll({ include: [{ model: db.Reviews }] })
+        .then((products) => {
+          res.status(200).send(products);
+        });
     })
-      .then(() => {
-        db.Product.findAll({ include: [{ model: db.Reviews }] })
-          .then((products) => {
-            res.status(200).send(products);
-          });
-      })
       .catch(console.log);
   },
 
@@ -40,7 +44,7 @@ const productsController = {
   },
 
   reviews(req, res) {
-    db.Reviews.findOne({
+    db.Reviews.findAll({
       where: { ProductId: Number(req.params.id) },
     })
       .then((reviews) => {

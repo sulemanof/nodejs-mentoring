@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const Reviews = sequelize.define('Reviews', {
-    reviews: DataTypes.STRING,
+    review: DataTypes.STRING,
     ProductId: DataTypes.INTEGER,
   }, {});
   Reviews.associate = function (models) {
