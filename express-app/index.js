@@ -1,6 +1,6 @@
 import Sequelize from 'sequelize';
 import app from './app';
-import { syncDb } from './models';
+import db from './models';
 
 const port = process.env.PORT || 8080;
 
@@ -21,7 +21,7 @@ sequelize
   .authenticate()
   .then(() => {
     console.log('Connection to database has been established successfully.');
-    syncDb(sequelize).then(() => {
+    db.sequelize.sync().then(() => {
       console.log('Database was synchronized!');
       app.listen(port, () => {
         console.log(`App listening on port ${port}!`);
