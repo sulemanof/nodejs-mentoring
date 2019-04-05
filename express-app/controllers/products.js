@@ -1,30 +1,59 @@
-import fs from 'fs';
-import { find, get } from 'lodash';
-import { products } from '../models';
-
+import db from '../models';
 
 const productsController = {
   getProducts(req, res) {
-    res.json(products);
+    db.Product.findAll({ include: [{ model: db.Reviews }] })
+      .then((products) => {
+        res.json(products);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.json({ error: 'No products available' });
+      });
   },
 
   addProduct(req, res) {
-    const newProduct = req.body;
-    const newProducts = JSON.stringify([...products, newProduct], null, '\t');
-    fs.writeFileSync('express-app/models/products.json', newProducts);
-    res.status(200).send(newProducts);
+    const { price, name, reviews } = req.body;
+    db.Product.create({
+      name,
+      price,
+      Reviews: reviews,
+    }).then(product => Promise.all(
+      reviews.map(review => db.Reviews.create({
+        ProductId: product.id,
+        review,
+      })),
+    )).then(() => {
+      db.Product.findAll({ include: [{ model: db.Reviews }] })
+        .then((products) => {
+          res.status(200).send(products);
+        });
+    })
+      .catch(console.log);
   },
 
   id(req, res) {
-    const product = find(products, { id: req.params.id })
-    || { error: 'No products found by the given id' };
-    res.json(product);
+    db.Product.findById(req.params.id)
+      .then((product) => {
+        res.json(product);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.json({ error: e.name });
+      });
   },
 
   reviews(req, res) {
-    const product = find(products, { id: req.params.id });
-    const review = get(product, 'reviews', { error: 'No reviews where found for provided id' });
-    res.json(review);
+    db.Reviews.findAll({
+      where: { ProductId: Number(req.params.id) },
+    })
+      .then((reviews) => {
+        res.json(reviews);
+      })
+      .catch((e) => {
+        console.log(e);
+        res.json({ error: 'No reviews found by the given id' });
+      });
   },
 };
 
